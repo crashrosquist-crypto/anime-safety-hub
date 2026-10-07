@@ -26,7 +26,7 @@ async function init() {
     const card = document.createElement('div');
     card.classList.add('anime-card');
     card.innerHTML = `
-    <a href="animeDetails.html?id=${anime.mal_id}">
+    <a href="./animeDetails.html?id=${anime.mal_id}">
     <img src="${anime.images.jpg.image_url}" alt="${anime.title}" />
     <h3>${anime.title}</h3>
     </a>

@@ -1,8 +1,23 @@
 import '../css/style.css';
+import { mockAnimeList } from './mockData.js';
+import { fetchAniListGenres } from './anilistService.js';
+import { fetchAnimeReviews, extractParentWarnings } from './reviewService.js';
+
+// 1. Fetch your episode intensity levels from the custom JSON file
+async function fetchEpisodeData(animeId) {
+    try {
+        const response = await fetch('/jsons/episodes.json');
+        const data = await response.json();
+        return data[animeId] || [];
+    } catch (error) {
+        console.warn("Could not load episode dataset:", error);
+        return [];
+    }
+}
 
 async function fetchAnimeDetail() {
     const params = new URLSearchParams(window.location.search);
-    const animeId = params.get('id');
+    const animeId = parseInt(params.get('id'));
     const container = document.querySelector('#detail-container');
 
     if (!animeId) {
@@ -10,26 +25,115 @@ async function fetchAnimeDetail() {
         return;
     }
 
-    try {
-        const response = await fetch(`https://api.jikan.moe/v4/anime/${animeId}`);
-        const data = await response.json();
-        const anime = data.data;
+    let anime = null;
 
-        container.innerHTML = `
-        <div class="anime-detail-view">
-        <img src="${anime.images.jpg.large_image_url}" alt="${anime.title}" />
+    try {
+        const response = await fetch(`https://api.tenrai.org/v1/anime/${animeId}`);
+        if (!response.ok) throw new Error('API failed');
+        const data = await response.json();
+        anime = data.data;
+    } catch (error) {
+        console.warn("⚠️ API failed. Pulling details from mock data.", error);
+        anime = mockAnimeList.find(a => a.mal_id === animeId);
+    }
+
+    if (!anime) {
+        container.innerHTML = '<p>Anime details could not be found.</p>';
+        return;
+    }
+
+    // --- FETCH SECONDARY DATA (AniList Genres) ---
+    const anilistGenres = await fetchAniListGenres(anime.title);
+    const genrePills = anilistGenres.length > 0 
+        ? anilistGenres.map(g => `<span class="tag-pill">${g}</span>`).join(' ')
+        : '<em>No secondary genres found.</em>';
+
+    // --- FETCH REVIEWS & SCAN FOR KEYWORDS ---
+    const reviews = await fetchAnimeReviews(animeId);
+    const flaggedKeywords = extractParentWarnings(reviews);
+    
+    const warningPills = flaggedKeywords.length > 0
+        ? flaggedKeywords.map(word => `<span class="warning-pill">⚠️ ${word}</span>`).join(' ')
+        : '<p style="font-size: 0.85rem; color: #666;">No major content triggers flagged in community reviews.</p>';
+
+    // --- FETCH EPISODE BREAKDOWN FROM JSON ---
+    const customEpisodes = await fetchEpisodeData(animeId);
+    let episodeHtml = '';
+
+    if (customEpisodes.length > 0) {
+        const episodeBars = customEpisodes.map(item => {
+            let colorClass = 'ep-green';
+            if (item.status === 'caution') colorClass = 'ep-yellow';
+            if (item.status === 'danger') colorClass = 'ep-red';
+
+            return `<div class="ep-bar ${colorClass}" title="${item.label}">E${item.ep}</div>`;
+        }).join('');
+
+        episodeHtml = `
+            <div class="episode-breakdown-section" style="margin: 20px 0;">
+              <h4>📊 Episode-by-Episode Safety Timeline</h4>
+              <p style="font-size: 0.85rem; color: #555;">Hover over blocks to check content thresholds:</p>
+              <div class="ep-grid" style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px;">
+                ${episodeBars}
+              </div>
+            </div>
+        `;
+    }
+
+    // --- SAFETY RATING LOGIC ---
+    const ratingString = anime.rating || "Unrated";
+    let safetyBadgeClass = "safe-general";
+    let safetyText = "General Audience";
+
+    if (ratingString.includes("R") || ratingString.includes("Rx")) {
+        safetyBadgeClass = "safe-mature";
+        safetyText = "Mature / Adult Themes";
+    } else if (ratingString.includes("PG-13") || ratingString.includes("PG")) {
+        safetyBadgeClass = "safe-caution";
+        safetyText = "Parental Guidance Advised";
+    }
+
+    const imageUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
+
+    // --- RENDER TO DOM ---
+    container.innerHTML = `
+      <div class="anime-detail-view">
+        <img src="${imageUrl}" alt="${anime.title}" />
         <div class="anime-info">
           <h2>${anime.title}</h2>
           <p><strong>Score:</strong> ${anime.score ?? 'N/A'}</p>
-          <p><strong>Rating:</strong> ${anime.rating ?? 'N/A'}</p>
+          <p><strong>Official Rating:</strong> ${ratingString}</p>
+          
+          <div class="safety-panel ${safetyBadgeClass}" style="margin: 15px 0; padding: 12px; border-radius: 6px; border: 1px solid #ccc;">
+            <h4 style="margin: 0 0 5px 0;">🛡️ Content Safety Assessment</h4>
+            <p style="margin: 0;"><strong>Status:</strong> ${safetyText}</p>
+          </div>
+
+          <!-- Renders the episode timeline fetched from JSON -->
+          ${episodeHtml}
+
+          <!-- Automated Review Warning Scanner Section -->
+          <div class="review-warnings-section" style="margin: 20px 0; padding: 12px; background: #fff8f8; border: 1px solid #f5c6cb; border-radius: 6px;">
+            <h4 style="margin: 0 0 5px 0; color: #721c24;">🔍 Community Review Content Flags</h4>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Automatically scanned from viewer reviews:</p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              ${warningPills}
+            </div>
+          </div>
+
+          <div class="anilist-tags-section" style="margin: 15px 0;">
+            <h4 style="margin: 0 0 5px 0;">🏷️ AniList Genres</h4>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              ${genrePills}
+            </div>
+          </div>
+
           <p><strong>Synopsis:</strong> ${anime.synopsis}</p>
+          <br>
+          <a href="/" class="back-btn">⬅ Back to Home</a>
         </div>
       </div>
-      `;
-    } catch (error) {
-        console.error("Failed to load anime details:", error);
-        container.innerHTML = '<p>Error loading show details.</p>';
-    }
+    `;
 }
 
 fetchAnimeDetail();
