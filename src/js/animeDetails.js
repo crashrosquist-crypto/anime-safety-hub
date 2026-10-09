@@ -2,6 +2,8 @@ import '../css/style.css';
 import { mockAnimeList } from './mockData.js';
 import { fetchAniListGenres } from './anilistService.js';
 import { fetchAnimeReviews, extractParentWarnings } from './reviewService.js';
+import { isParentLoggedIn } from './parentAuth.js';
+import { isInWatchlist, toggleWatchlist } from './watchlist.js';
 
 // 1. Fetch your episode intensity levels from the custom JSON file
 async function fetchEpisodeData(animeId) {
@@ -80,6 +82,15 @@ async function fetchAnimeDetail() {
         `;
     }
 
+    const inList = isInWatchlist(anime.mal_id);
+    
+    // Watchlist Button HTML
+    const watchlistButtonHtml = `
+        <button id="watchlist-btn" style="margin: 15px 0; padding: 10px 16px; background: ${inList ? '#dc3545' : '#28a745'}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            ${inList ? '❌ Remove from Watchlist' : '⭐ Add to Watchlist'}
+        </button>
+    `;
+
     // --- SAFETY RATING LOGIC ---
     const ratingString = anime.rating || "Unrated";
     let safetyBadgeClass = "safe-general";
@@ -94,11 +105,24 @@ async function fetchAnimeDetail() {
     }
 
     const imageUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
+    const isRedZone = ratingString.includes("R") || ratingString.includes("Rx");
+
+    // --- RED ZONE BLUR IMAGE HTML ---
+    const imageHtml = `
+        <div style="position: relative; display: inline-block;">
+            <img src="${imageUrl}" alt="${anime.title}" style="border-radius: 8px; filter: ${isRedZone ? 'blur(12px)' : 'none'}; transition: filter 0.3s ease; cursor: pointer;" title="Hover to reveal image" onmouseover="this.style.filter='blur(0)'" onmouseout="this.style.filter='${isRedZone ? 'blur(12px)' : 'none'}'" />
+            ${isRedZone ? `
+                <div style="position: absolute; top: 10px; left: 10px; background: rgba(220, 53, 69, 0.9); color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; pointer-events: none; z-index: 10;">
+                    ⚠️ Red Zone (Hover to View)
+                </div>
+            ` : ''}
+        </div>
+    `;
 
     // --- RENDER TO DOM ---
     container.innerHTML = `
       <div class="anime-detail-view">
-        <img src="${imageUrl}" alt="${anime.title}" />
+        ${imageHtml}
         <div class="anime-info">
           <h2>${anime.title}</h2>
           <p><strong>Score:</strong> ${anime.score ?? 'N/A'}</p>
@@ -108,6 +132,8 @@ async function fetchAnimeDetail() {
             <h4 style="margin: 0 0 5px 0;">🛡️ Content Safety Assessment</h4>
             <p style="margin: 0;"><strong>Status:</strong> ${safetyText}</p>
           </div>
+
+          ${watchlistButtonHtml}
 
           <!-- Renders the episode timeline fetched from JSON -->
           ${episodeHtml}
@@ -134,6 +160,15 @@ async function fetchAnimeDetail() {
         </div>
       </div>
     `;
+
+    const watchlistBtn = container.querySelector('#watchlist-btn');
+    if (watchlistBtn) {
+        watchlistBtn.addEventListener('click', () => {
+            const added = toggleWatchlist(anime);
+            watchlistBtn.style.background = added ? '#dc3545' : '#28a745';
+            watchlistBtn.textContent = added ? '❌ Remove from Watchlist' : '⭐ Add to Watchlist';
+        });
+    }
 }
 
 fetchAnimeDetail();

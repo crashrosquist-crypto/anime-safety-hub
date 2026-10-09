@@ -64,3 +64,15 @@
     font-size: 0.8rem;
     font-weight: bold;
 }
+
+/* Danger Zone */
+.red-zone-media img {
+    filter: blur(12px);
+    transition: filter 0.3s ease;
+    cursor: pointer;
+}
+
+.red-zone-media.revealed img,
+.red-zone-media img:hover {
+    filter: blur(0);
+}
