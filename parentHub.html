@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anime Safety Hub - Parent Dashboard</title>
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+  <link rel="stylesheet" href="/style.css"> 
+</head>
+<body>
+
+  <!-- Header Placeholder -->
+  <div id="header-container"></div>
+
+  <main class="main-content" id="parent-main-content">
+    <h2>Parent Control Dashboard</h2>
+    <p class="section-hint">Monitor saved shows and manage safety settings.</p>
+    
+    <!-- Safety Settings Panel -->
+    <section class="parent-controls" style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid var(--border-color);">
+      <h3>Content Restrictions</h3>
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 10px;">
+        <input type="checkbox" id="mature-filter-toggle" style="width: 18px; height: 18px;">
+        <span>Hide Mature / R-Rated Content from App</span>
+      </label>
+    </section>
+
+    <h3>Monitored Watchlist</h3>
+    <!-- Reusing your grid style -->
+    <div id="parent-watchlist-grid" class="anime-grid">
+      <!-- Populated by JS -->
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px 20px; font-size: 0.85rem; color: #666;">
+    <p>© 2026 Anime Safety Hub. Protecting young viewers one show at a time.</p>
+  </footer>
+
+  <script type="module" src="./src/js/parentHub.js"></script>
+</body>
+</html>

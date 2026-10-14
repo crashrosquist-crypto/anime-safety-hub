@@ -8,6 +8,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         animeDetails: resolve(__dirname, 'animeDetails.html'),
+        'watchlist': resolve(__dirname, 'watchlist.html')
       },
     },
   },

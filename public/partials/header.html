@@ -1,10 +1,30 @@
-<nav class="navbar">
-  <div class="logo">
-    <a href="index.html">🛡️ Anime Safety Hub</a>
-  </div>
-  <ul class="nav-links">
-    <li><a href="index.html">Home</a></li>
-    <li><a href="#">Watchlist</a></li>
-    <li><a href="#">Parent Login</a></li>
-  </ul>
-</nav>
+<!-- src/partials/header.html -->
+<head>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+</head>
+
+<header class="site-header">
+  <nav class="navbar">
+    <div class="logo">
+  <a href="index.html">
+    <img src="/images/favicon.ico" alt="Logo" class="nav-logo">
+  </a>
+  Anime <span>Safety Hub</span>
+</div>
+
+    <!-- Hamburger Toggle Button (Hidden on Desktop) -->
+    <button class="mobile-menu-btn" id="menu-btn" aria-label="Toggle navigation menu">
+      ☰
+    </button>
+
+    <!-- Navigation Links -->
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="watchlist.html">Watchlist</a></li>
+      <li><a href="parentHub.html">Parent Login</a></li>
+    </ul>
+  </nav>
+</header>

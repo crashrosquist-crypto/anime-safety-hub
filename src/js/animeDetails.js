@@ -4,6 +4,19 @@ import { fetchAniListGenres } from './anilistService.js';
 import { fetchAnimeReviews, extractParentWarnings } from './reviewService.js';
 import { isParentLoggedIn } from './parentAuth.js';
 import { isInWatchlist, toggleWatchlist } from './watchlist.js';
+import { initComments } from './comments.js';
+
+// --- Load HTML Partials (Header & Footer) ---
+async function loadPartial(containerId, filePath) {
+  try {
+    const response = await fetch(filePath);
+    if (!response.ok) throw new Error(`Failed to load ${filePath}`);
+    const html = await response.text();
+    document.querySelector(containerId).innerHTML = html;
+  } catch (error) {
+    console.error(`Failed to load partial from ${filePath}:`, error);
+  }
+}
 
 // 1. Fetch your episode intensity levels from the custom JSON file
 async function fetchEpisodeData(animeId) {
@@ -18,6 +31,10 @@ async function fetchEpisodeData(animeId) {
 }
 
 async function fetchAnimeDetail() {
+    // Load navigation header and footer partials first
+    await loadPartial('#header-container', '/partials/header.html');
+    await loadPartial('#footer-container', '/partials/footer.html');
+
     const params = new URLSearchParams(window.location.search);
     const animeId = parseInt(params.get('id'));
     const container = document.querySelector('#detail-container');
@@ -56,7 +73,7 @@ async function fetchAnimeDetail() {
     
     const warningPills = flaggedKeywords.length > 0
         ? flaggedKeywords.map(word => `<span class="warning-pill">⚠️ ${word}</span>`).join(' ')
-        : '<p style="font-size: 0.85rem; color: #666;">No major content triggers flagged in community reviews.</p>';
+        : '<p class="empty-notice">No major content triggers flagged in community reviews.</p>';
 
     // --- FETCH EPISODE BREAKDOWN FROM JSON ---
     const customEpisodes = await fetchEpisodeData(animeId);
@@ -72,10 +89,10 @@ async function fetchAnimeDetail() {
         }).join('');
 
         episodeHtml = `
-            <div class="episode-breakdown-section" style="margin: 20px 0;">
+            <div class="episode-breakdown-section">
               <h4>📊 Episode-by-Episode Safety Timeline</h4>
-              <p style="font-size: 0.85rem; color: #555;">Hover over blocks to check content thresholds:</p>
-              <div class="ep-grid" style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px;">
+              <p class="section-hint">Hover over blocks to check content thresholds:</p>
+              <div class="ep-grid">
                 ${episodeBars}
               </div>
             </div>
@@ -86,7 +103,7 @@ async function fetchAnimeDetail() {
     
     // Watchlist Button HTML
     const watchlistButtonHtml = `
-        <button id="watchlist-btn" style="margin: 15px 0; padding: 10px 16px; background: ${inList ? '#dc3545' : '#28a745'}; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+        <button id="watchlist-btn" class="btn-watchlist ${inList ? 'in-watchlist' : ''}">
             ${inList ? '❌ Remove from Watchlist' : '⭐ Add to Watchlist'}
         </button>
     `;
@@ -109,10 +126,10 @@ async function fetchAnimeDetail() {
 
     // --- RED ZONE BLUR IMAGE HTML ---
     const imageHtml = `
-        <div style="position: relative; display: inline-block;">
-            <img src="${imageUrl}" alt="${anime.title}" style="border-radius: 8px; filter: ${isRedZone ? 'blur(12px)' : 'none'}; transition: filter 0.3s ease; cursor: pointer;" title="Hover to reveal image" onmouseover="this.style.filter='blur(0)'" onmouseout="this.style.filter='${isRedZone ? 'blur(12px)' : 'none'}'" />
+        <div class="media-container ${isRedZone ? 'red-zone-media' : ''}">
+            <img src="${imageUrl}" alt="${anime.title}" title="Hover to reveal image" />
             ${isRedZone ? `
-                <div style="position: absolute; top: 10px; left: 10px; background: rgba(220, 53, 69, 0.9); color: white; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; pointer-events: none; z-index: 10;">
+                <div class="red-zone-badge">
                     ⚠️ Red Zone (Hover to View)
                 </div>
             ` : ''}
@@ -128,33 +145,56 @@ async function fetchAnimeDetail() {
           <p><strong>Score:</strong> ${anime.score ?? 'N/A'}</p>
           <p><strong>Official Rating:</strong> ${ratingString}</p>
           
-          <div class="safety-panel ${safetyBadgeClass}" style="margin: 15px 0; padding: 12px; border-radius: 6px; border: 1px solid #ccc;">
-            <h4 style="margin: 0 0 5px 0;">🛡️ Content Safety Assessment</h4>
-            <p style="margin: 0;"><strong>Status:</strong> ${safetyText}</p>
+          <div class="safety-panel ${safetyBadgeClass}">
+            <h4>🛡️ Content Safety Assessment</h4>
+            <p><strong>Status:</strong> ${safetyText}</p>
           </div>
 
           ${watchlistButtonHtml}
 
-          <!-- Renders the episode timeline fetched from JSON -->
           ${episodeHtml}
 
-          <!-- Automated Review Warning Scanner Section -->
-          <div class="review-warnings-section" style="margin: 20px 0; padding: 12px; background: #fff8f8; border: 1px solid #f5c6cb; border-radius: 6px;">
-            <h4 style="margin: 0 0 5px 0; color: #721c24;">🔍 Community Review Content Flags</h4>
-            <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">Automatically scanned from viewer reviews:</p>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <div class="review-warnings-section">
+            <h4>🔍 Community Review Content Flags</h4>
+            <p class="section-hint">Automatically scanned from viewer reviews:</p>
+            <div class="pills-flex-wrap">
               ${warningPills}
             </div>
           </div>
 
-          <div class="anilist-tags-section" style="margin: 15px 0;">
-            <h4 style="margin: 0 0 5px 0;">🏷️ AniList Genres</h4>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <div class="anilist-tags-section">
+            <h4>🏷️ AniList Genres</h4>
+            <div class="pills-flex-wrap">
               ${genrePills}
             </div>
           </div>
 
           <p><strong>Synopsis:</strong> ${anime.synopsis}</p>
+          <br>
+
+          <!-- Parent Reviews & Comments Section -->
+          <section class="comments-section">
+            <h3>💬 Parent Community Reviews</h3>
+            
+            <form id="comment-form" class="comment-form">
+              <textarea id="comment-input" placeholder="Share your thoughts on content appropriateness for kids..." rows="3" required></textarea>
+              <div class="comment-form-footer">
+                <select id="rating-input">
+                  <option value="5">⭐⭐⭐⭐⭐ (5/5 Safe & Great)</option>
+                  <option value="4">⭐⭐⭐⭐ (4/5 Minor warnings)</option>
+                  <option value="3">⭐⭐⭐ (3/5 Parental guidance)</option>
+                  <option value="2">⭐⭐ (2/5 Caution)</option>
+                  <option value="1">⭐ (1/5 Not recommended)</option>
+                </select>
+                <button type="submit" class="btn-primary">Post Review</button>
+              </div>
+            </form>
+
+            <div id="comments-list" class="comments-list">
+              <!-- Dynamic reviews load here -->
+            </div>
+          </section>
+
           <br>
           <a href="/" class="back-btn">⬅ Back to Home</a>
         </div>
@@ -165,10 +205,13 @@ async function fetchAnimeDetail() {
     if (watchlistBtn) {
         watchlistBtn.addEventListener('click', () => {
             const added = toggleWatchlist(anime);
-            watchlistBtn.style.background = added ? '#dc3545' : '#28a745';
+            watchlistBtn.classList.toggle('in-watchlist', added);
             watchlistBtn.textContent = added ? '❌ Remove from Watchlist' : '⭐ Add to Watchlist';
         });
     }
+
+    // Initialize comments module for this specific show ID
+    initComments(anime.mal_id);
 }
 
 fetchAnimeDetail();

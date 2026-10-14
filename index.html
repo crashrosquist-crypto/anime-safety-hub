@@ -2,18 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Anime Safety Hub</title>
-    <script type="module" src="/src/js/main.js"></script>
+
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
   </head>
   <body>
     <div id="header-container"></div>
 
-    <main id="app-container">
-      <p>Loading trending safety data....</p>
+    <a href="#" id="hero-link" class="hero-banner-link">
+      <section class="hero-banner" id="hero-banner">
+        <div class="hero-content">
+          <span class="hero-badge">⭐ #1 Trending & Recommended</span>
+          <h1 id="hero-title">Loading Featured Show...</h1>
+          <p id="hero-synopsis">Exploring content safety ratings, review community warnings, and episode intensity breakdowns.</p>
+          <span class="btn-primary">View Safety Details</span>
+        </div>
+      </section>
+    </a>
+
+    <main class="main-content">
+      <!-- NEW: Mission to Parents Hero Section -->
+      <section class="mission-hero">
+        <div class="mission-content">
+          <h2>Our Mission to Parents</h2>
+          <p>Helping families navigate anime safely with transparent content breakdowns, community safety flags, and episode-by-episode reviews.</p>
+        </div>
+      </section>
+
+      <h2>Trending Anime Safety Guide</h2>
+      <div id="app-container" class="anime-grid">
+      </div>
     </main>
 
     <div id="footer-container"></div>
+
+    <script type="module" src="./src/js/main.js"></script>
   </body>
 </html>
